@@ -1,10 +1,10 @@
-use consts::{ZkError, ZkState};
-use listeners::ListenerSet;
-use proto::{
+use crate::consts::{ZkError, ZkState};
+use crate::listeners::ListenerSet;
+use crate::proto::{
     ByteBuf, ConnectRequest, ConnectResponse, OpCode, ReadFrom, ReplyHeader, RequestHeader, WriteTo,
 };
-use watch::WatchMessage;
-use zookeeper::{RawRequest, RawResponse};
+use crate::watch::WatchMessage;
+use crate::zookeeper::{RawRequest, RawResponse};
 
 use byteorder::{BigEndian, ByteOrder};
 use bytes::{Buf, Bytes, BytesMut};
@@ -24,7 +24,7 @@ const ZK: Token = Token(1);
 const TIMER: Token = Token(2);
 const CHANNEL: Token = Token(3);
 
-use try_io::{TryRead, TryWrite};
+use crate::try_io::{TryRead, TryWrite};
 
 lazy_static! {
     static ref PING: ByteBuf = RequestHeader {

@@ -1,13 +1,13 @@
-use consts::{KeeperState, WatchedEventType};
-use consts::{
+use crate::consts::{KeeperState, WatchedEventType};
+use crate::consts::{
     WatchedEventType::{NodeChildrenChanged, NodeCreated, NodeDataChanged, NodeDeleted},
     WatcherType,
 };
-use proto::ReadFrom;
+use crate::proto::ReadFrom;
 use std::collections::HashMap;
 use std::io;
 use std::sync::mpsc::{self, Receiver, Sender};
-use zookeeper::RawResponse;
+use crate::zookeeper::RawResponse;
 
 const PERSISTENT_WATCH_TRIGGERS: [WatchedEventType; 4] = [
     NodeChildrenChanged,
