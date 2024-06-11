@@ -16,10 +16,7 @@ impl Watcher for NoopWatcher {
 
 fn zk_server_urls() -> String {
     let key = "ZOOKEEPER_SERVERS";
-    match env::var(key) {
-        Ok(val) => val,
-        Err(_) => "localhost:2181".to_string(),
-    }
+    env::var(key).unwrap_or_else(|_| "localhost:2181".to_string())
 }
 
 fn main() {
@@ -28,7 +25,7 @@ fn main() {
     let zk_urls = zk_server_urls();
     log::info!("connecting to {}", zk_urls);
 
-    let zk = ZooKeeper::connect(&*zk_urls, Duration::from_millis(2500), NoopWatcher).unwrap();
+    let zk = ZooKeeper::connect(&zk_urls, Duration::from_millis(2500), NoopWatcher).unwrap();
 
     let id = Uuid::new_v4().to_string();
     log::info!("starting host with id: {:?}", id);

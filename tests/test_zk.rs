@@ -1,13 +1,15 @@
 use zookeeper::{Acl, CreateMode, WatchedEvent, ZooKeeper};
 use zookeeper::KeeperState;
 
-use ZkCluster;
-
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 use std::thread;
 use env_logger;
+use log::info;
+
+mod common;
+use common::ZkCluster;
 
 
 #[test]

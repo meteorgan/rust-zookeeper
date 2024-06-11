@@ -2,7 +2,9 @@ use uuid::Uuid;
 use zookeeper::{recipes::leader::LeaderLatch, ZkResult, ZooKeeper};
 use env_logger;
 use std::{sync::Arc, time::Duration, thread};
-use ZkCluster;
+
+mod common;
+use common::ZkCluster;
 
 #[test]
 fn leader_latch_test() -> ZkResult<()> {

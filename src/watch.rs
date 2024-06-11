@@ -80,8 +80,8 @@ impl<W: Watcher> ZkWatch<W> {
         let watch = ZkWatch {
             watches: HashMap::new(),
             persistent_watches: HashMap::new(),
-            watcher: watcher,
-            chroot: chroot,
+            watcher,
+            chroot,
             rx,
         };
         (watch, tx)
@@ -119,7 +119,7 @@ impl<W: Watcher> ZkWatch<W> {
                 };
                 group
                     .entry(watch.path.clone())
-                    .or_insert_with(|| vec![])
+                    .or_insert_with(Vec::new)
                     .push(watch);
             }
             WatchMessage::RemoveWatch(path, watcher_type) => {
@@ -139,13 +139,13 @@ impl<W: Watcher> ZkWatch<W> {
 
     fn dispatch(&mut self, event: &WatchedEvent) {
         debug!("{:?}", event);
-        if !self.trigger_watches(&event) {
+        if !self.trigger_watches(event) {
             self.watcher.handle(event.clone())
         }
     }
 
     /// Triggers all the watches that we have registered, removing the ones that are not persistent.
-    /// Returns whether or not any of the watches fired.
+    /// Returns whether any of the watches fired.
     fn trigger_watches(&mut self, event: &WatchedEvent) -> bool {
         if let Some(ref path) = event.path {
             // We execute this in two steps. Once for the one-off watches, and once for the persistent ones.
@@ -177,9 +177,9 @@ impl<W: Watcher> ZkWatch<W> {
                 && !self.persistent_watches.is_empty()
             {
                 let mut watch_path = String::from("");
-                let mut parts = path.split("/").skip(1);
+                let parts = path.split('/').skip(1);
                 let mut triggered = false;
-                while let Some(part) = parts.next() {
+                for part in parts {
                     watch_path = watch_path + "/" + part;
                     if let Some(watches) = self.persistent_watches.get(&watch_path) {
                         for w in watches {

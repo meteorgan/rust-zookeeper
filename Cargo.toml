@@ -27,7 +27,3 @@ uuid = { version = "0.8.1", features = ["v4"] }
 
 [features]
 unstable = []
-
-[[test]]
-name = "test"
-path = "tests/test.rs"

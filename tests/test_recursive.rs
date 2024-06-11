@@ -1,9 +1,10 @@
 use zookeeper::{WatchedEvent, ZkError, ZooKeeper, ZooKeeperExt};
 
-use ZkCluster;
-
 use std::iter::once;
 use std::time::Duration;
+
+mod common;
+use common::ZkCluster;
 
 #[test]
 fn get_children_recursive_test() {

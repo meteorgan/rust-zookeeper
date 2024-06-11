@@ -8,7 +8,6 @@ use mio_extras::channel::Sender as MioSender;
 use crate::watch::{Watch, Watcher, ZkWatch};
 use std::convert::From;
 use std::net::{SocketAddr, ToSocketAddrs};
-use std::result;
 use std::string::ToString;
 use std::sync::atomic::{AtomicIsize, Ordering};
 use std::sync::mpsc::{sync_channel, SyncSender};
@@ -18,7 +17,7 @@ use std::thread;
 
 
 /// Value returned from potentially-error operations.
-pub type ZkResult<T> = result::Result<T, ZkError>;
+pub type ZkResult<T> = Result<T, ZkError>;
 
 pub struct RawRequest {
     pub opcode: OpCode,
@@ -128,14 +127,14 @@ impl ZooKeeper {
                                              -> ZkResult<Resp> {
         trace!("request opcode={:?} xid={:?}", opcode, xid);
         let rh = RequestHeader {
-            xid: xid,
-            opcode: opcode,
+            xid,
+            opcode,
         };
         let buf = to_len_prefixed_buf(rh, req).map_err(|_| ZkError::MarshallingError)?;
 
         let (resp_tx, resp_rx) = sync_channel(0);
         let request = RawRequest {
-            opcode: opcode,
+            opcode,
             data: buf,
             listener: Some(resp_tx),
             watch,
@@ -168,7 +167,7 @@ impl ZooKeeper {
         match path {
             "" => Err(ZkError::BadArguments),
             path => {
-                if path.len() > 1 && path.chars().last() == Some('/') {
+                if path.len() > 1 && path.ends_with('/') {
                     Err(ZkError::BadArguments)
                 } else {
                     Ok(path)
@@ -205,7 +204,7 @@ impl ZooKeeper {
         let req = AuthRequest {
             typ: 0,
             scheme: scheme.to_string(),
-            auth: auth,
+            auth,
         };
 
         let _: EmptyResponse = self.request(OpCode::Auth, -4, req, None)?;
@@ -245,8 +244,8 @@ impl ZooKeeper {
         trace!("ZooKeeper::create");
         let req = CreateRequest {
             path: self.path(path)?,
-            data: data,
-            acl: acl,
+            data,
+            acl,
             flags: mode as i32,
         };
 
@@ -291,7 +290,7 @@ impl ZooKeeper {
         trace!("ZooKeeper::exists");
         let req = ExistsRequest {
             path: self.path(path)?,
-            watch: watch,
+            watch,
         };
 
         match self.request::<ExistsRequest, ExistsResponse>(OpCode::Exists, self.xid(), req, None) {
@@ -356,7 +355,7 @@ impl ZooKeeper {
         trace!("ZooKeeper::set_acl");
         let req = SetAclRequest {
             path: self.path(path)?,
-            acl: acl,
+            acl,
             version: version.unwrap_or(-1),
         };
 
@@ -382,7 +381,7 @@ impl ZooKeeper {
         trace!("ZooKeeper::get_children");
         let req = GetChildrenRequest {
             path: self.path(path)?,
-            watch: watch,
+            watch,
         };
 
         let response: GetChildrenResponse = self.request(OpCode::GetChildren,
@@ -433,7 +432,7 @@ impl ZooKeeper {
         trace!("ZooKeeper::get_data");
         let req = GetDataRequest {
             path: self.path(path)?,
-            watch: watch,
+            watch,
         };
 
         let response: GetDataResponse = self.request(OpCode::GetData, self.xid(), req, None)?;
@@ -488,7 +487,7 @@ impl ZooKeeper {
         trace!("ZooKeeper::set_data");
         let req = SetDataRequest {
             path: self.path(path)?,
-            data: data,
+            data,
             version: version.unwrap_or(-1),
         };
 
@@ -509,7 +508,7 @@ impl ZooKeeper {
 
         let req = AddWatchRequest {
             path: self.path(path)?,
-            mode: mode,
+            mode,
         };
 
         let watch = Watch {
@@ -530,13 +529,13 @@ impl ZooKeeper {
 
         let req = RemoveWatchesRequest {
             path: self.path(path)?,
-            watcher_type: watcher_type,
+            watcher_type,
         };
 
         // This watch is used to be able to remove local watchers.
         let watch = Watch {
             path: path.to_owned(),
-            watcher_type: watcher_type,
+            watcher_type,
             watcher: Box::new(|_| {}),
         };
 

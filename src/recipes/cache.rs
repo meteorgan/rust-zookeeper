@@ -80,8 +80,8 @@ impl PathChildrenCache {
 
         Ok(PathChildrenCache {
             path: Arc::new(path.to_owned()),
-            zk: zk,
-            data: data,
+            zk,
+            data,
             worker_thread: None,
             channel: None,
             listener_subscription: None,
@@ -111,7 +111,7 @@ impl PathChildrenCache {
             };
         };
 
-        let children = zk.get_children_w(&path, watcher)?;
+        let children = zk.get_children_w(path, watcher)?;
 
         let mut data_locked = data.lock().unwrap();
 
@@ -242,7 +242,7 @@ impl PathChildrenCache {
             Operation::Initialize => {
                 debug!("initialising...");
                 let result = Self::get_children(zk.clone(),
-                                                &*path,
+                                                path.as_str(),
                                                 data.clone(),
                                                 ops_chan_tx.clone(),
                                                 RefreshMode::ForceGetDataAndStat);
@@ -265,7 +265,7 @@ impl PathChildrenCache {
             Operation::Refresh(mode) => {
                 debug!("getting children");
                 let result = Self::get_children(zk.clone(),
-                                                &*path,
+                                                path.as_str(),
                                                 data.clone(),
                                                 ops_chan_tx.clone(),
                                                 mode);
@@ -274,7 +274,7 @@ impl PathChildrenCache {
             Operation::GetData(path) => {
                 debug!("getting data");
                 let result = Self::update_data(zk.clone(),
-                                               &*path,
+                                               path.as_str(),
                                                data.clone(),
                                                ops_chan_tx.clone());
                 if let Err(err) = result {
@@ -341,7 +341,7 @@ impl PathChildrenCache {
         self.event_listeners.subscribe(subscriber)
     }
 
-    pub fn remove_listener(&self, sub: Subscription) -> () {
+    pub fn remove_listener(&self, sub: Subscription) {
         self.event_listeners.unsubscribe(sub)
     }
 

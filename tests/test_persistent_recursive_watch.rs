@@ -1,11 +1,13 @@
 use zookeeper::{AddWatchMode, Acl, CreateMode, WatcherType};
 use zookeeper::{WatchedEvent, ZooKeeper, ZooKeeperExt};
 
-use ZkCluster;
-
 use env_logger;
 use std::sync::mpsc;
 use std::time::Duration;
+use log::info;
+
+mod common;
+use common::ZkCluster;
 
 #[test]
 fn persistent_watch_receives_more_than_one_message_on_modifications() {
