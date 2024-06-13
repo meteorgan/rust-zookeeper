@@ -105,8 +105,9 @@ impl ZkIo {
             + ping_timeout_duration.subsec_nanos() as u64 / 1000000;
         let (tx, rx) = channel();
 
+        let stream = std::net::TcpStream::connect(&addrs[0]).unwrap();
         let mut zkio = ZkIo {
-            sock: TcpStream::connect(&addrs[0]).unwrap(), // TODO I need a socket here, sorry.
+            sock: TcpStream::from_stream(stream).unwrap(),
             state: ZkState::Connecting,
             hosts: Hosts::new(addrs),
             buffer: VecDeque::new(),

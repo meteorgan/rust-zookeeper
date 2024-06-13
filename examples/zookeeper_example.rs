@@ -22,10 +22,7 @@ impl Watcher for LoggingWatcher {
 
 fn zk_server_urls() -> String {
     let key = "ZOOKEEPER_SERVERS";
-    match env::var(key) {
-        Ok(val) => val,
-        Err(_) => "localhost:2181".to_string(),
-    }
+    env::var(key).unwrap_or_else(|_| "localhost:2181".to_string())
 }
 
 
@@ -33,7 +30,7 @@ fn zk_example() {
     let zk_urls = zk_server_urls();
     println!("connecting to {}", zk_urls);
 
-    let zk = ZooKeeper::connect(&*zk_urls, Duration::from_secs(15), LoggingWatcher).unwrap();
+    let zk = ZooKeeper::connect(zk_urls.as_str(), Duration::from_secs(15), LoggingWatcher).unwrap();
 
     zk.add_listener(|zk_state| println!("New ZkState is {:?}", zk_state));
 

@@ -47,8 +47,8 @@ pub trait Watcher: Send {
 }
 
 impl<F> Watcher for F
-where
-    F: Fn(WatchedEvent) + Send,
+    where
+        F: Fn(WatchedEvent) + Send,
 {
     fn handle(&self, event: WatchedEvent) {
         self(event)
@@ -64,7 +64,7 @@ pub enum WatchMessage {
 pub struct ZkWatch<W: Watcher> {
     watcher: W,
     watches: HashMap<String, Vec<Watch>>,
-    // Storing peristent watches separately since they may require splitting the event path
+    // Storing persistent watches separately since they may require splitting the event path
     // which will have a performance impact. This replicates how they are stored in Zookeeper as well
     // and allows us to skip removing them from the hashmap and re-adding them.
     persistent_watches: HashMap<String, Vec<Watch>>,
@@ -147,61 +147,62 @@ impl<W: Watcher> ZkWatch<W> {
     /// Triggers all the watches that we have registered, removing the ones that are not persistent.
     /// Returns whether any of the watches fired.
     fn trigger_watches(&mut self, event: &WatchedEvent) -> bool {
-        if let Some(ref path) = event.path {
-            // We execute this in two steps. Once for the one-off watches, and once for the persistent ones.
-            let triggered_watch = match self.watches.remove(path) {
-                Some(watches) => {
-                    let (matching, left): (_, Vec<Watch>) =
-                        watches.into_iter().partition(|w| {
-                            match (event.event_type, w.watcher_type) {
-                                (NodeChildrenChanged, WatcherType::Children) => true,
-                                (NodeCreated | NodeDataChanged, WatcherType::Data) => true,
-                                (NodeDeleted, _) => true,
-                                _ => false,
-                            }
-                        });
-                    // put back the remaining watches
-                    if !left.is_empty() {
-                        self.watches.insert(path.to_owned(), left);
-                    }
-                    // Trigger all matching watches.
-                    matching
-                        .iter()
-                        .for_each(|w| w.watcher.handle(event.clone()));
-                    !matching.is_empty()
-                }
-                None => false,
-            };
+        if event.path.is_none() {
+            return false;
+        }
 
-            let triggered_peristent_watch = if PERSISTENT_WATCH_TRIGGERS.contains(&event.event_type)
-                && !self.persistent_watches.is_empty()
-            {
-                let mut watch_path = String::from("");
-                let parts = path.split('/').skip(1);
-                let mut triggered = false;
-                for part in parts {
-                    watch_path = watch_path + "/" + part;
-                    if let Some(watches) = self.persistent_watches.get(&watch_path) {
-                        for w in watches {
-                            if match w.watcher_type {
-                                WatcherType::Persistent => path == &watch_path,
-                                WatcherType::PersistentRecursive => true,
-                                _ => false,
-                            } {
-                                w.watcher.handle(event.clone());
-                                triggered = true;
-                            }
+        let path = event.path.as_ref().unwrap();
+        // We execute this in two steps. Once for the one-off watches, and once for the persistent ones.
+        let triggered_watch = match self.watches.remove(path) {
+            Some(watches) => {
+                let (matching, left): (_, Vec<Watch>) =
+                    watches.into_iter().partition(|w| {
+                        match (event.event_type, w.watcher_type) {
+                            (NodeChildrenChanged, WatcherType::Children) => true,
+                            (NodeCreated | NodeDataChanged, WatcherType::Data) => true,
+                            (NodeDeleted, _) => true,
+                            _ => false,
+                        }
+                    });
+                // put back the remaining watches
+                if !left.is_empty() {
+                    self.watches.insert(path.to_owned(), left);
+                }
+                // Trigger all matching watches.
+                matching
+                    .iter()
+                    .for_each(|w| w.watcher.handle(event.clone()));
+                !matching.is_empty()
+            }
+            None => false,
+        };
+
+        let triggered_persistent_watch = if PERSISTENT_WATCH_TRIGGERS.contains(&event.event_type)
+            && !self.persistent_watches.is_empty()
+        {
+            let mut watch_path = String::from("");
+            let parts = path.split('/').skip(1);
+            let mut triggered = false;
+            for part in parts {
+                watch_path = watch_path + "/" + part;
+                if let Some(watches) = self.persistent_watches.get(&watch_path) {
+                    for w in watches {
+                        if match w.watcher_type {
+                            WatcherType::Persistent => path == &watch_path,
+                            WatcherType::PersistentRecursive => true,
+                            _ => false,
+                        } {
+                            w.watcher.handle(event.clone());
+                            triggered = true;
                         }
                     }
                 }
-                triggered
-            } else {
-                false
-            };
-            triggered_watch || triggered_peristent_watch
+            }
+            triggered
         } else {
             false
-        }
+        };
+        triggered_watch || triggered_persistent_watch
     }
 }
 
